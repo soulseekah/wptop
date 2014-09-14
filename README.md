@@ -5,7 +5,7 @@ An XHProf-based WordPress code profiler. Gives you real-time overview of your Wo
 
 ![wptop](https://raw.github.com/soulseekah/wptop/master/screenshot0.png)
 
-Requires xhprof.
+Requires [XHProf](http://php.net/manual/en/book.xhprof.php).
 
 Installation
 ------------
