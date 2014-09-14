@@ -3,6 +3,8 @@
 
 An XHProf-based WordPress code profiler. Gives you real-time overview of your WordPress application's performance and can be used in production due to very low overhead. Find out your slow pages and functions, optimize and profit from faster WordPress websites.
 
+[wptop](https://raw.github.com/soulseekah/wptop/master/screenshot0.png)
+
 Requires xhprof.
 
 Installation
