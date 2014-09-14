@@ -12,12 +12,12 @@
 		if ( !isset( $attrs['cpu'] ) ) $attrs['cpu'] = true;
 		if ( !isset( $attrs['builtins'] ) ) $attrs['builtins'] = true;
 
+		/** Ooh, no xhprof? Too bad... */
+		if ( !function_exists( 'xhprof_enable' ) ) return;
+
 		$flags = $attrs['memory'] ? XHPROF_FLAGS_MEMORY : 0;
 		$flags |= $attrs['cpu'] ? XHPROF_FLAGS_CPU : 0;
 		$flags |= $attrs['builtins'] ? XHPROF_FLAGS_NO_BUILTINS : 0;
-
-		/** Ooh, no xhprof? Too bad... */
-		if ( !function_exists( 'xhprof_enable' ) ) return;
 
 		xhprof_enable( $flags );
 
