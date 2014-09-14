@@ -93,6 +93,13 @@
 					#wptop-overview .averages li h4 {
 						font-size: 20px;
 					}
+
+					#wptop-top .top-block {
+						float: left;
+					}
+					#wptop-top .top-block li {
+						list-style: none;
+					}
 				</style>
 
 				<div id="wptop-screen" class="postbox" style="min-height: 400px">
@@ -104,7 +111,7 @@
 								<li><a href="#wptop-top" aria-controls="wptop-top">Top</a></li>
 								<li><a href="#wptop-configuration" aria-controls="wptop-configuration">Configuration</a></li>
 								<li><a href="#wptop-status" aria-controls="wptop-status">Status</a></li>
-								<li><a href="#wptop-help" aria-controls="wptop-help">Help</a></li>
+								<!-- <li><a href="#wptop-help" aria-controls="wptop-help">Help</a></li> -->
 							</ul>
 						</div>
 						
@@ -159,41 +166,55 @@
 							</div>
 							<div id="wptop-top" class="help-tab-content">
 								<h2>Top</h2>
-								<p>Here are some nice graphs...</p>
-							</div>
-							<div id="wptop-all" class="help-tab-content">
-								<h2>All</h2>
-								<p>This is an overview of all request performance entries currently available in the database.</p>
-
-								<?php
-									$rows = $wpdb->get_results( sprintf( 'SELECT * FROM %s WHERE `status` = "cooked" ORDER BY `timestamp` DESC', $wpdb->prefix . self::$table ) );
-								?>
-								<table>
-									<thead>
-										<tr>
-											<th>Date</th>
-											<th>URI</th>
-											<th>Time</th>
-											<th>CPU</th>
-											<th>Memory</th>
-											<th>Calls</th>
-										</tr>
-									</thead>
-									<tbody>
-										<?php foreach ( $rows as $row ): ?>
-											<tr>
-												<td><?php echo esc_html( date( 'r', $row->timestamp ) ); ?></td>
-												<td><?php echo esc_html( $row->url ); ?></td>
-												<td><?php echo esc_html( intval( $row->wall / 1000 ) ); ?> ms</td>
-												<td><?php echo esc_html( intval( $row->cpu / 1000 ) ); ?> ms</td>
-												<td><?php echo esc_html( size_format( $row->memory ) ); ?></td>
-												<td><?php echo esc_html( $row->calls ); ?></td>
-											</tr>
+								<h3>Functions</h3>
+								<div class="top-block">
+									<h4>Average Time</h4>
+									<ul>
+										<?php foreach ( $cache['avg']['func']['wall'] as $function => $value ): ?>
+											<li>
+												<span class="value"><?php echo intval( $value / 1000 ); ?> ms</span>
+												<?php echo esc_html( $function ); ?>
+											</li>
 										<?php endforeach; ?>
-									</tbody>
-									<tfoot>
-									</tfoot>
-								</table>
+									</ul>
+								</div>
+								<div class="top-block">
+									<h4>Average Memory</h4>
+									<ul>
+										<?php foreach ( $cache['avg']['func']['memory'] as $function => $value ): ?>
+											<li>
+												<span class="value"><?php echo size_format( $value ); ?></span>
+												<?php echo esc_html( $function ); ?>
+											</li>
+										<?php endforeach; ?>
+									</ul>
+								</div>
+								<div class="clear"></div>
+
+								<h3>Requests</h3>
+								<div class="top-block">
+									<h4>Average Time</h4>
+									<ul>
+										<?php foreach ( $cache['avg']['req']['wall'] as $request ): ?>
+											<li>
+												<span class="value"><?php echo intval( $request['wall'] / 1000 ); ?> ms</span>
+												<a href="<?php echo esc_url( $request['url'] ); ?>"><?php echo esc_html( $request['url'] ); ?></a>
+											</li>
+										<?php endforeach; ?>
+									</ul>
+								</div>
+								<div class="top-block">
+									<h4>Average Memory</h4>
+									<ul>
+										<?php foreach ( $cache['avg']['req']['memory'] as $request ): ?>
+											<li>
+												<span class="value"><?php echo size_format( $request['memory'] ); ?></span>
+												<a href="<?php echo esc_url( $request['url'] ); ?>"><?php echo esc_html( $request['url'] ); ?></a>
+											</li>
+										<?php endforeach; ?>
+									</ul>
+								</div>
+								<div class="clear"></div>
 							</div>
 							<div id="wptop-configuration" class="help-tab-content">
 								<h2>Configuration</h2>
@@ -274,7 +295,11 @@
 
 			$rows = $wpdb->get_results( sprintf( 'SELECT * FROM %s WHERE `status` = "raw" ORDER BY `timestamp` DESC', $wpdb->prefix . self::$table ) );
 
-			$compare = function( $key ) {
+			$compare = function( $key = null ) {
+				if ( !$key ) return function( $a, $b ) {
+					if ( $a == $b ) return 0;
+					return ( $a < $b ) ? 1 : -1;
+				};
 				return function( $a, $b ) use ( $key ) {
 					if ( $a[$key] == $b[$key] ) return 0;
 					return ( $a[$key] < $b[$key] ) ? 1 : -1;
@@ -312,8 +337,34 @@
 
 			/** Request averages */
 			$avg['req'] = array();
-			$avg['req']['wall'] = $wpdb->get_results( sprintf( 'SELECT t.* FROM (SELECT AVG(wall) AS wall, url FROM %s WHERE status = "cooked" GROUP BY url) AS t ORDER BY t.wall LIMIT %d', $wpdb->prefix . self::$table, 20 ), ARRAY_A );
-			$avg['req']['cpu'] = $wpdb->get_results( sprintf( 'SELECT t.* FROM (SELECT AVG(cpu) AS cpu, url FROM %s WHERE status = "cooked" GROUP BY url) AS t ORDER BY t.cpu LIMIT %d', $wpdb->prefix . self::$table, 20 ), ARRAY_A );
+			$avg['req']['wall'] = $wpdb->get_results( sprintf( 'SELECT t.* FROM (SELECT AVG(wall) AS wall, url FROM %s WHERE status = "cooked" GROUP BY url) AS t ORDER BY t.wall DESC LIMIT %d', $wpdb->prefix . self::$table, 20 ), ARRAY_A );
+			$avg['req']['memory'] = $wpdb->get_results( sprintf( 'SELECT t.* FROM (SELECT AVG(memory) AS memory, url FROM %s WHERE status = "cooked" GROUP BY url) AS t ORDER BY t.memory DESC LIMIT %d', $wpdb->prefix . self::$table, 20 ), ARRAY_A );
+
+			/** Function averages */
+			$avg['func'] = array( 'wall' => array(), 'memory' => array() );
+			foreach ( $wpdb->get_results( sprintf( 'SELECT top FROM %s WHERE status = "cooked"', $wpdb->prefix . self::$table ) ) as $entry ) {
+				$top = unserialize( $entry->top );	
+				foreach ( $top['wt'] as $function => $value ) {
+					if ( !isset( $avg['func']['wall'][$function] ) ) $avg['func']['wall'][$function] = array();
+					$avg['func']['wall'][$function] []= $value['excl_wt'];
+				}
+				foreach ( $top['mem'] as $function => $value ) {
+					if ( !isset( $avg['func']['memory'][$function] ) ) $avg['func']['memory'][$function] = array();
+					$avg['func']['memory'][$function] []= $value['excl_pmu'];
+				}
+			}
+			$avg['func']['wall'] = array_map( function( $value ) {
+				return array_sum( $value ) / count( $value );
+			}, $avg['func']['wall'] );
+			$avg['func']['memory'] = array_map( function( $value ) {
+				return array_sum( $value ) / count( $value );
+			}, $avg['func']['memory'] );
+
+			uasort( $avg['func']['wall'], $compare() );
+			$avg['func']['wall'] = array_slice( $avg['func']['wall'], 0, 20 );
+
+			uasort( $avg['func']['memory'], $compare() );
+			$avg['func']['memory'] = array_slice( $avg['func']['memory'], 0, 20 );
 
 			update_option( 'wptop_cache', array(
 				'timestamp' => time(),
